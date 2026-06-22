@@ -282,18 +282,26 @@ app.delete('/pacientes/:pacienteId/consultas/:consultaId', verificarSecret, asyn
 // POST /archivos/subir — Subir un archivo a Google Drive
 app.post('/archivos/subir', verificarSecret, upload.single('archivo'), async (req, res) => {
   try {
+    console.log('📁 Recibiendo archivo...');
+    console.log('Body:', JSON.stringify(req.body));
+    console.log('File:', req.file ? `${req.file.originalname} (${req.file.size} bytes)` : 'NO FILE');
+
     if (!req.file) return res.status(400).json({ error: 'No se recibió archivo' });
     if (!process.env.GOOGLE_CLIENT_ID) {
       return res.status(503).json({ error: 'Google Drive no configurado aún' });
     }
 
     const { pacienteId, consultaId, nombreOriginal } = req.body;
+    console.log(`📤 Subiendo a Drive: paciente=${pacienteId}, consulta=${consultaId}`);
+
     const resultado = await subirArchivoADrive(
       req.file.buffer,
       `${Date.now()}_${req.file.originalname}`,
       req.file.mimetype,
       pacienteId
     );
+
+    console.log('✅ Subido a Drive:', resultado.driveId);
 
     // Guardar referencia del archivo en la consulta del paciente
     const p = await Paciente.findOne({ id: pacienteId });
@@ -314,6 +322,8 @@ app.post('/archivos/subir', verificarSecret, upload.single('archivo'), async (re
 
     res.json(resultado);
   } catch (err) {
+    console.error('❌ Error subiendo archivo:', err.message);
+    console.error('Stack:', err.stack);
     res.status(500).json({ error: err.message });
   }
 });

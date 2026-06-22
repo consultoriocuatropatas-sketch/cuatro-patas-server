@@ -337,7 +337,21 @@ app.delete('/archivos/:driveId', verificarSecret, async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
-
+// GET /archivos/thumb/:driveId — Proxy de miniaturas para evitar CORS
+app.get('/archivos/thumb/:driveId', async (req, res) => {
+  try {
+    const drive = getDriveClient();
+    const response = await drive.files.get(
+      { fileId: req.params.driveId, alt: 'media' },
+      { responseType: 'arraybuffer' }
+    );
+    res.setHeader('Content-Type', response.headers['content-type'] || 'image/jpeg');
+    res.setHeader('Cache-Control', 'public, max-age=86400');
+    res.send(Buffer.from(response.data));
+  } catch (e) {
+    res.status(404).json({ error: 'No encontrado' });
+  }
+});
 // ── Arrancar servidor ────────────────────────────────────────────────────────
 app.listen(PORT, () => {
   console.log(`🐾 Servidor Cuatro Patas corriendo en puerto ${PORT}`);
